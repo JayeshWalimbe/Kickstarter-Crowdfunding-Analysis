@@ -1,0 +1,175 @@
+create database project;
+
+use project;
+
+show tables;
+
+desc projects;
+
+select count(*) from projects;
+
+select created_at from projects;
+
+select ProjectID, created_at from projects;
+
+SELECT created_at, FROM_UNIXTIME(created_at) AS readable_date
+FROM projects;
+
+SELECT deadline, FROM_UNIXTIME(deadline) AS readable_date2
+FROM projects;
+
+SELECT *, 
+	   DATE_FORMAT(FROM_UNIXTIME(created_at), '%Y-%m-%d') AS formatted_date
+       FROM projects;
+      
+      
+create table project2 as SELECT *, 
+        DATE_FORMAT(FROM_UNIXTIME(created_at), '%Y-%m-%d') AS formatted_date
+        FROM projects;
+      
+# our orignal tables 
+#table --1
+select * from project2;
+
+#table --2
+SELECT * FROM creater_csvfile;
+
+#table --3
+SELECT * FROM location_csvfile;
+
+#  rename columns in table 
+alter table location_csvfile change column name name2 varchar(111); 
+alter table location_csvfile change column id id2 varchar(111); 
+alter table location_csvfile change column state state2 varchar(111); 
+alter table location_csvfile change column country country2 varchar(111); 
+
+#table --4
+SELECT * FROM category_csvfile;
+
+# rename columns in table
+alter table category_csvfile change column name name3 varchar(111); 
+alter table category_csvfile change column id id3 varchar(111); 
+
+# here we perform our join operations 
+
+CREATE TABLE project4 AS select * from 
+project2 
+inner join category_csvfile on project2.category_id = category_csvfile.id3
+inner join location_csvfile on project2.location_id = location_csvfile.id2;
+
+#  inner join creater_csvfile on project2.ProjectID= creater_csvfile.id;
+
+
+# we created new main table project4 
+select * from project4;
+
+
+# kpi commands in mysql 
+
+#  project based on outcome
+
+SELECT state, COUNT(*) AS total_projects
+FROM project2
+GROUP BY state
+order by total_projects desc;
+
+# project based on location 
+SELECT country, COUNT(*) AS total_projects
+FROM project4
+GROUP BY country
+order by total_projects desc;
+
+
+# proeject based on category 
+SELECT name3, COUNT(*) AS total_projects
+FROM project4
+GROUP BY name3
+order by total_projects desc;
+
+
+# project by Year
+SELECT YEAR(formatted_date) AS year, COUNT(*) AS total_projects
+FROM project4
+GROUP BY YEAR(formatted_date)
+ORDER BY YEAR(formatted_date);
+
+# project By Quarter 
+
+ SELECT YEAR(formatted_date) AS year, QUARTER(formatted_date) AS quarter, COUNT(*) AS total_projects
+FROM project4
+GROUP BY YEAR(formatted_date), QUARTER(formatted_date)
+ORDER BY YEAR(formatted_date),  QUARTER(formatted_date);
+
+
+# Project By month 
+SELECT YEAR(formatted_date) AS year, MONTH(formatted_date) AS month, COUNT(*) AS total_projects
+FROM project4
+GROUP BY YEAR(formatted_date), MONTH(formatted_date)
+ORDER BY YEAR(formatted_date), MONTH(formatted_date);
+
+
+# amount raised by succesful projects
+SELECT SUM(goal) AS total_amount_raised
+FROM project4
+WHERE state = 'Successful';
+
+
+# amount raised by backed projects
+SELECT SUM(goal) AS total_number_of_backers
+FROM project4
+WHERE state = 'Successful';
+
+
+# average days for successful projects
+SELECT round(avg(DATEDIFF(FROM_UNIXTIME(deadline), formatted_date))) AS avg_number_of_days
+FROM project4
+WHERE state = 'Successful';
+
+
+# most successful project by amout raised 
+SELECT name3
+FROM project4
+WHERE state = 'Successful'
+ORDER BY goal DESC
+LIMIT 1;
+
+
+# most succesful  projects by backers counts 
+SELECT name3
+FROM project4
+WHERE state = 'Successful'
+ORDER BY backers_count DESC
+LIMIT 1;
+
+
+# Total No Of Successful Projects
+SELECT 
+round((SUM(CASE WHEN state = 'Successful' THEN 1 ELSE 0 END) / COUNT(*)) * 100,2) AS successful_percentage
+FROM project4;
+
+
+# Percentage of Successful Projects by Category
+SELECT 
+name3, 
+(SUM(CASE WHEN state = 'Successful' THEN 1 ELSE 0 END) / COUNT(*)) * 100 AS successful_percentage
+FROM project4
+GROUP BY name3 order by successful_percentage desc limit 10;
+
+
+# succesful percentage by year 
+SELECT 
+YEAR(formatted_date) AS year, 
+(SUM(CASE WHEN state = 'Successful' THEN 1 ELSE 0 END) / COUNT(*)) * 100 AS successful_percentage
+FROM project4
+GROUP BY YEAR(formatted_date)
+order by successful_percentage desc limit 10;
+
+
+# Percentage of Successful Projects by Year and Month
+SELECT 
+YEAR(formatted_date) AS year, 
+MONTH(formatted_date) AS month, 
+(SUM(CASE WHEN state = 'Successful' THEN 1 ELSE 0 END) / COUNT(*)) * 100 AS successful_percentage
+FROM project4
+GROUP BY YEAR(formatted_date), MONTH(formatted_date)
+order by successful_percentage desc limit 10;
